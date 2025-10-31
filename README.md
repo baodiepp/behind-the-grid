@@ -124,6 +124,4 @@ By default Vite serves on `http://localhost:5173`. Ensure CORS origins match (`a
 - Track map visualization enhancements (sector coloring by delta)
 - Authentication and multi-user shareable dashboards
 
-## License
 
-MIT (or change to your preferred license). Contributions, issues, and feature ideas are welcome.
