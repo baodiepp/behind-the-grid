@@ -1,73 +1,127 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Telemetry Dash
 
-Currently, two official plugins are available:
+Telemetry Dash is a full-stack F1 telemetry explorer that lets you ingest raw Formula 1 session data, store it in TimescaleDB, and interactively analyze it in a modern React dashboard. It is designed for hobbyists, engineers, and race strategists who want rapid insight into lap performance, pace evolution, and corner-by-corner deltas.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Project Overview
 
-## React Compiler
+- **Backend**: FastAPI service (`api/`) that serves lap metadata, detailed telemetry, lap summaries, and derived analytics (corner atlas, pace trends). Data is stored in PostgreSQL with the TimescaleDB extension to handle high-resolution time series.
+- **Ingestor**: `ingestor/load_session.py` pulls FastF1 telemetry for a specific season/round/session/driver and populates the database. The default dataset is Red Bull driver VER (Max Verstappen) in the 2023 season opener (Bahrain GP race).
+- **Frontend**: Vite + React + TypeScript app (`frontend/`) styled with Tailwind, featuring responsive cards, tables, and interactive Recharts plots for pace, telemetry traces, and corner analytics.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- **Session Picker & Lap Table**: Browse laps for a selected session/driver. Auto-selects fastest lap as the reference and toggles focus/compare laps with visual highlights.
+- **Telemetry Chart**: Scrollable, zoomable speed trace with scale slider, brush, and loading indicator.
+- **Lap Compare**: Overlays reference vs. comparison lap speed, and renders Δ-time vs. distance with tooltips, highlight range, and direct integration with corner atlas.
+- **Corner Atlas**: Per-corner breakdown of entry/apex/exit speeds, peak brake/throttle, delta time, and top-loss badge with toggle between top 8 and full set of corners (≈20 per lap). Includes |Δt| threshold slider and highlight sync.
+- **Pace & Tire Degradation Panel**: Lap-time trend with optional 3-lap moving average, sector Δ stacked bars, compound badges, and clean vs. pit-lap filter.
+- **API Analytics**: `/laps/summary`, `/laps/corners`, `/lap_summaries` endpoints calculate best lap deltas, sector contributions, and corner-level metrics with configurable thresholds.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting Started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Python 3.12+ (ideally using the provided `.venv` virtual environment)
+- Node.js 18+ (for the frontend Vite app)
+- Docker (for TimescaleDB via docker-compose)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Clone and Setup
+
+```bash
+git clone <repo-url>
+cd telemetry-dash
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt  # if you export requirements
+npm install --prefix frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Current Python dependencies are managed via the venv; the frontend has a `package-lock.json` checked in.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 2. Start the Database
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+docker compose up -d db
 ```
+
+TimescaleDB will be exposed on `localhost:5432` with credentials `telemetry / telemetry` (default in `docker-compose.yml`).
+
+### 3. Set Environment Variables
+
+```bash
+export DATABASE_URL="postgresql://telemetry:telemetry@localhost:5432/telemetry"
+export FASTF1_CACHE="$HOME/.fastf1"
+```
+
+These are required by both the ingestor and the FastAPI backend. Create the cache directory if it doesn’t exist.
+
+### 4. Ingest a Session
+
+```bash
+. .venv/bin/activate
+python ingestor/load_session.py
+```
+
+The script loads the configured session (2023 R1 VER by default) into the database. It inserts sessions, drivers, lap times, and telemetry rows with XY coordinates and pedal traces.
+
+### 5. Run the Backend
+
+```bash
+. .venv/bin/activate
+uvicorn api.app:app --reload --port 8000
+```
+
+The API provides JSON endpoints used by the React app. Visit `http://127.0.0.1:8000/docs` for auto-generated Swagger docs.
+
+### 6. Run the Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+By default Vite serves on `http://localhost:5173`. Ensure CORS origins match (`api/app.py` already allows localhost ports).
+
+## Key Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/sessions` | List available sessions from the database |
+| `/laps?session_id&driver_code` | Return lap table with best lap flag |
+| `/telemetry?session_id&driver_code&lap_number` | High-resolution telemetry with XY coordinates |
+| `/laps/summary` | Lap metrics with delta to session best, pit flags |
+| `/laps/corners` | Corner atlas metrics; accepts tunable detection params |
+| `/lap_summaries` | Aggregated telemetry (avg/max speed, throttle, brake per lap) |
+
+## Frontend Structure
+
+- `src/App.tsx`: Main dashboard layout, orchestrating SessionPicker, LapCompare, CornerAtlas, and PacePanel.
+- `src/components/`: Modular UI components (cards, tables, charts) including LapCompare, PacePanel, CornerAtlas, etc.
+- `src/lib/api.ts`: Axios client + typed wrappers for API endpoints.
+- `tailwind.config.js`, `postcss.config.js`: Tailwind CSS configuration.
+
+## Scripts
+
+- `docker compose up -d db` — launch TimescaleDB
+- `python ingestor/load_session.py` — ingest session telemetry
+- `uvicorn api.app:app --reload` — start FastAPI backend
+- `npm run dev` (from `frontend`) — run React development server
+- `npm run build` — TypeScript + Vite production build
+- `npm run lint` — ESLint checks
+
+## Troubleshooting
+
+- **Blank UI**: Ensure both FastAPI (port 8000) and Vite (port 5173) are running; check browser dev tools for API errors.
+- **No Sessions**: Verify the ingest script ran successfully and `DATABASE_URL` points to the correct database.
+- **Corner Atlas empty**: Adjust thresholds via query params (`/laps/corners` supports `on`, `off`, `exit_thr`, `min_len`, `min_drop_kph`, `min_peak_brake`, `scale01`) or confirm brake/throttle data exists.
+- **Slow ingest**: FastF1 may take time on first download; subsequent runs use cached data.
+
+## Roadmap Ideas
+
+- Compare drivers within the same session (cross-driver lap compare)
+- Session overlay charts (pace evolution across compounds)
+- Track map visualization enhancements (sector coloring by delta)
+- Authentication and multi-user shareable dashboards
+
+
