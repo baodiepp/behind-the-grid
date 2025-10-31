@@ -1,127 +1,164 @@
+# 🏎️ Behind the Grid
 
-# Telemetry Dash
+**Behind the Grid** is a full-stack Formula 1 telemetry analysis dashboard that ingests raw race data, stores it in **TimescaleDB**, and visualizes performance metrics through a modern **React + FastAPI** interface.  
+It’s built for **engineers, developers, and race strategists** seeking insight into lap performance, pace evolution, and corner-by-corner deltas.
 
-Telemetry Dash is a full-stack F1 telemetry explorer that lets you ingest raw Formula 1 session data, store it in TimescaleDB, and interactively analyze it in a modern React dashboard. It is designed for hobbyists, engineers, and race strategists who want rapid insight into lap performance, pace evolution, and corner-by-corner deltas.
+---
 
-## Project Overview
+## 🚀 Project Overview
 
-- **Backend**: FastAPI service (`api/`) that serves lap metadata, detailed telemetry, lap summaries, and derived analytics (corner atlas, pace trends). Data is stored in PostgreSQL with the TimescaleDB extension to handle high-resolution time series.
-- **Ingestor**: `ingestor/load_session.py` pulls FastF1 telemetry for a specific season/round/session/driver and populates the database. The default dataset is Red Bull driver VER (Max Verstappen) in the 2023 season opener (Bahrain GP race).
-- **Frontend**: Vite + React + TypeScript app (`frontend/`) styled with Tailwind, featuring responsive cards, tables, and interactive Recharts plots for pace, telemetry traces, and corner analytics.
+- 🧠 **Backend** – FastAPI service (`api/`) serving lap metadata, telemetry, summaries, and analytics like corner atlas and pace trends.  
+  Data is stored in **PostgreSQL** with **TimescaleDB** for efficient time-series handling.  
+- ⚙️ **Ingestor** – `ingestor/load_session.py` uses **FastF1** to fetch telemetry data for specific seasons, rounds, and drivers, then populates the database.  
+- 💻 **Frontend** – Built with **Vite + React + TypeScript**, styled with **Tailwind CSS**, featuring interactive **Recharts** visualizations for telemetry traces, pace, and corner performance.
 
-## Features
+---
 
-- **Session Picker & Lap Table**: Browse laps for a selected session/driver. Auto-selects fastest lap as the reference and toggles focus/compare laps with visual highlights.
-- **Telemetry Chart**: Scrollable, zoomable speed trace with scale slider, brush, and loading indicator.
-- **Lap Compare**: Overlays reference vs. comparison lap speed, and renders Δ-time vs. distance with tooltips, highlight range, and direct integration with corner atlas.
-- **Corner Atlas**: Per-corner breakdown of entry/apex/exit speeds, peak brake/throttle, delta time, and top-loss badge with toggle between top 8 and full set of corners (≈20 per lap). Includes |Δt| threshold slider and highlight sync.
-- **Pace & Tire Degradation Panel**: Lap-time trend with optional 3-lap moving average, sector Δ stacked bars, compound badges, and clean vs. pit-lap filter.
-- **API Analytics**: `/laps/summary`, `/laps/corners`, `/lap_summaries` endpoints calculate best lap deltas, sector contributions, and corner-level metrics with configurable thresholds.
+## ✨ Features
 
-## Getting Started
+- 🗂️ **Session Picker & Lap Table** – Browse all laps in a session; automatically highlights the fastest lap for comparison.  
+- 📈 **Telemetry Chart** – Scrollable, zoomable traces with live brushing, scaling, and data-loading indicators.  
+- ⚖️ **Lap Comparison** – Compare reference vs. comparison laps with Δ-time vs. distance charts and synced corner highlights.  
+- 🧩 **Corner Atlas** – Per-corner metrics (entry/apex/exit speeds, braking, throttle, delta, and losses) with filtering sliders.  
+- ⏱️ **Pace & Tire Degradation** – Lap-time evolution with moving averages, tire compound tags, and pit-lap filtering.  
+- 🔍 **Analytics API** – Endpoints for lap summaries, corner stats, and aggregated telemetry metrics.
 
-### Prerequisites
+---
 
-- Python 3.12+ (ideally using the provided `.venv` virtual environment)
-- Node.js 18+ (for the frontend Vite app)
-- Docker (for TimescaleDB via docker-compose)
+## 🧰 Tech Stack
 
-### 1. Clone and Setup
+| Category | Technologies |
+|-----------|---------------|
+| Backend | FastAPI, Python, PostgreSQL, TimescaleDB |
+| Frontend | React, TypeScript, Vite, TailwindCSS, Recharts |
+| DevOps | Docker, Docker Compose |
+| Data | FastF1 Telemetry API |
+| Tools | VS Code, Git, Swagger UI |
+
+---
+
+## ⚡ Getting Started
+
+### 🧩 Prerequisites
+
+- Python 3.12+  
+- Node.js 18+  
+- Docker (for TimescaleDB)  
+
+### 🏁 1. Clone & Setup
 
 ```bash
 git clone <repo-url>
-cd telemetry-dash
+cd behind-the-grid
 python -m venv .venv
 . .venv/bin/activate
-pip install -r requirements.txt  # if you export requirements
+pip install -r requirements.txt
 npm install --prefix frontend
 ```
 
-Current Python dependencies are managed via the venv; the frontend has a `package-lock.json` checked in.
-
-### 2. Start the Database
+### 🗄️ 2. Start Database
 
 ```bash
 docker compose up -d db
 ```
+TimescaleDB runs on `localhost:5432` using credentials `telemetry / telemetry`.
 
-TimescaleDB will be exposed on `localhost:5432` with credentials `telemetry / telemetry` (default in `docker-compose.yml`).
-
-### 3. Set Environment Variables
+### ⚙️ 3. Set Environment Variables
 
 ```bash
 export DATABASE_URL="postgresql://telemetry:telemetry@localhost:5432/telemetry"
 export FASTF1_CACHE="$HOME/.fastf1"
 ```
 
-These are required by both the ingestor and the FastAPI backend. Create the cache directory if it doesn’t exist.
-
-### 4. Ingest a Session
+### 🧾 4. Ingest a Session
 
 ```bash
 . .venv/bin/activate
 python ingestor/load_session.py
 ```
 
-The script loads the configured session (2023 R1 VER by default) into the database. It inserts sessions, drivers, lap times, and telemetry rows with XY coordinates and pedal traces.
-
-### 5. Run the Backend
+### 🖥️ 5. Run the Backend
 
 ```bash
-. .venv/bin/activate
 uvicorn api.app:app --reload --port 8000
 ```
+Access API docs at → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-The API provides JSON endpoints used by the React app. Visit `http://127.0.0.1:8000/docs` for auto-generated Swagger docs.
-
-### 6. Run the Frontend
+### 💻 6. Run the Frontend
 
 ```bash
 cd frontend
 npm run dev
 ```
+Open → [http://localhost:5173](http://localhost:5173)
 
-By default Vite serves on `http://localhost:5173`. Ensure CORS origins match (`api/app.py` already allows localhost ports).
+---
 
-## Key Endpoints
+## 🔗 Key Endpoints
 
-| Endpoint | Purpose |
-|----------|---------|
-| `/sessions` | List available sessions from the database |
-| `/laps?session_id&driver_code` | Return lap table with best lap flag |
-| `/telemetry?session_id&driver_code&lap_number` | High-resolution telemetry with XY coordinates |
-| `/laps/summary` | Lap metrics with delta to session best, pit flags |
-| `/laps/corners` | Corner atlas metrics; accepts tunable detection params |
-| `/lap_summaries` | Aggregated telemetry (avg/max speed, throttle, brake per lap) |
+| Endpoint | Description |
+|-----------|-------------|
+| `/sessions` | List all available sessions |
+| `/laps?session_id&driver_code` | Fetch laps with best lap flags |
+| `/telemetry` | Return full telemetry data with coordinates |
+| `/laps/summary` | Get per-lap metrics and delta to session best |
+| `/laps/corners` | Return detailed corner performance metrics |
+| `/lap_summaries` | Average/max speed, throttle, and brake per lap |
 
-## Frontend Structure
+---
 
-- `src/App.tsx`: Main dashboard layout, orchestrating SessionPicker, LapCompare, CornerAtlas, and PacePanel.
-- `src/components/`: Modular UI components (cards, tables, charts) including LapCompare, PacePanel, CornerAtlas, etc.
-- `src/lib/api.ts`: Axios client + typed wrappers for API endpoints.
-- `tailwind.config.js`, `postcss.config.js`: Tailwind CSS configuration.
+## 🧱 Frontend Structure
 
-## Scripts
+```
+frontend/
+├── src/
+│   ├── App.tsx              # Main dashboard layout
+│   ├── components/          # Modular charts, tables, cards
+│   └── lib/api.ts           # Axios client & endpoint wrappers
+├── tailwind.config.js
+└── postcss.config.js
+```
 
-- `docker compose up -d db` — launch TimescaleDB
-- `python ingestor/load_session.py` — ingest session telemetry
-- `uvicorn api.app:app --reload` — start FastAPI backend
-- `npm run dev` (from `frontend`) — run React development server
-- `npm run build` — TypeScript + Vite production build
-- `npm run lint` — ESLint checks
+---
 
-## Troubleshooting
+## 🧪 Common Scripts
 
-- **Blank UI**: Ensure both FastAPI (port 8000) and Vite (port 5173) are running; check browser dev tools for API errors.
-- **No Sessions**: Verify the ingest script ran successfully and `DATABASE_URL` points to the correct database.
-- **Corner Atlas empty**: Adjust thresholds via query params (`/laps/corners` supports `on`, `off`, `exit_thr`, `min_len`, `min_drop_kph`, `min_peak_brake`, `scale01`) or confirm brake/throttle data exists.
-- **Slow ingest**: FastF1 may take time on first download; subsequent runs use cached data.
+| Command | Description |
+|----------|-------------|
+| `docker compose up -d db` | Launch TimescaleDB |
+| `python ingestor/load_session.py` | Ingest session telemetry |
+| `uvicorn api.app:app --reload` | Start backend |
+| `npm run dev` | Run frontend in dev mode |
+| `npm run build` | Build production frontend |
+| `npm run lint` | Lint frontend code |
 
-## Roadmap Ideas
+---
 
-- Compare drivers within the same session (cross-driver lap compare)
-- Session overlay charts (pace evolution across compounds)
-- Track map visualization enhancements (sector coloring by delta)
-- Authentication and multi-user shareable dashboards
+## 🧭 Troubleshooting
 
+- ⚠️ **Blank UI** → Ensure FastAPI (port 8000) and Vite (port 5173) are both running.  
+- 🏎️ **No Sessions** → Verify ingestion succeeded and `DATABASE_URL` is correct.  
+- 🧠 **Corner Atlas Empty** → Adjust `/laps/corners` parameters or ensure throttle/brake data is present.  
+- 🐢 **Slow Ingest** → FastF1 caches data; subsequent runs are faster.
 
+---
+
+## 🧩 Roadmap
+
+- 🔁 Cross-driver lap comparison  
+- 🧭 Multi-session overlays (pace evolution)  
+- 🗺️ Sector-colored track visualization  
+- 🔐 User authentication & shareable dashboards  
+
+---
+
+## 💬 Contributing
+
+Pull requests are welcome!  
+If you’d like to contribute new features, enhancements, or telemetry datasets, feel free to fork and submit a PR.
+
+---
+
+## 🏁 License
+
+MIT © 2025 **Bao Diep**
